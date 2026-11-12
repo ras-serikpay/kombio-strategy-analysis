@@ -1,0 +1,11 @@
+[project]
+name = "kombio-sim"
+version = "1.0.0"
+description = "Monte Carlo simulator and strategy lab for the card game KOMBIO"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Rassul Serikpay"}]
+optional-dependencies = {charts = ["matplotlib"], test = ["pytest"]}
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
