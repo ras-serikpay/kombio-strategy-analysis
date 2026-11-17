@@ -13,7 +13,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from kombio.experiments import early_call, strategy_grid  # noqa: E402
+from kombio.experiments import calibration, early_call, memory_errors, strategy_grid, tournament  # noqa: E402
 
 RESULTS = ROOT / "results"
 
@@ -68,6 +68,43 @@ def plot(early: list[dict], grid: list[dict]) -> None:
     print("charts written to results/")
 
 
+def plot_calibration(rows: list[dict]) -> None:
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot([50, 100], [50, 100], ls="--", lw=1, color="#888", label="perfect calibration")
+    for est, c in (("original (current totals only)", "#c0392b"), ("calibrated (final turns + kept-low cards)", "#1b4965")):
+        pts = [r for r in rows if r["estimator"] == est]
+        ax.plot([100 * r["predicted"] for r in pts], [100 * r["actual"] for r in pts], marker="o", color=c, label=est)
+    ax.set(xlabel="Predicted chance the call wins (%)", ylabel="Calls actually won (%)",
+           title="The calibrated estimate means what it says", xlim=(50, 100), ylim=(30, 100))
+    ax.legend(frameon=False, loc="upper left")
+    fig.tight_layout()
+    fig.savefig(RESULTS / "calibration.png", dpi=150)
+
+
+def plot_tournament(standings: list[dict]) -> None:
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+    except ImportError:
+        return
+    rows = standings[::-1]
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.barh([r["strategy"] for r in rows], [100 * r["win_rate"] for r in rows], color="#3b6ea5")
+    ax.axvline(25, ls=":", lw=1, color="#888")
+    for y, r in enumerate(rows):
+        ax.text(100 * r["win_rate"] + 0.5, y, f"{100 * r['win_rate']:.0f}%", va="center")
+    ax.set(xlabel="Games won (%) across all tables and seats", title="Round-robin tournament: strategies vs each other")
+    fig.tight_layout()
+    fig.savefig(RESULTS / "tournament.png", dpi=150)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--quick", action="store_true", help="tiny run to check everything works")
@@ -75,6 +112,7 @@ def main() -> None:
     ap.add_argument("--workers", type=int, default=None)
     a = ap.parse_args()
     early_n, rounds, games = (2000, 300, 50) if a.quick else (40000, 3000, 1000)
+    cal_rounds, t_games = (2000, 2) if a.quick else (40000, 60)
 
     RESULTS.mkdir(exist_ok=True)
     print(f"A) early call: {early_n:,} rounds")
@@ -90,6 +128,28 @@ def main() -> None:
         print(f"   {r['strategy']:<42} opp forget {r['opp_forget']:>4.0%} | call win {r['call_win_rate']:6.1%}"
               f" | round win {r['round_win_rate']:6.1%} | game win {r['game_win_rate']:6.1%}")
     plot(early, grid)
+
+    print(f"C) calibration: {cal_rounds:,} rounds per estimator")
+    cal = calibration(cal_rounds, a.seed, a.workers)
+    write_csv(cal, RESULTS / "calibration.csv")
+    for r in cal:
+        print(f"   {r['estimator']:<36} {r['bin']}: predicted {r['predicted']:6.1%} | actual {r['actual']:6.1%} ({r['calls']} calls)")
+    plot_calibration(cal)
+
+    print(f"D) memory errors & discard pile: {rounds:,} rounds + {games:,} games per cell")
+    mem = memory_errors(rounds, games, a.seed, a.workers)
+    write_csv(mem, RESULTS / "memory_errors.csv")
+    for r in mem:
+        print(f"   {r['strategy']:<20} opp misremember {r['opp_misremember']:>4.0%} | wrong matches/opp/round "
+              f"{r['opp_wrong_matches_per_round']:.2f} | game win {r['game_win_rate']:6.1%}")
+
+    print(f"E) tournament: 70 tables x 4 seat rotations x {t_games} games")
+    standings, h2h = tournament(games=t_games, seed=a.seed, workers=a.workers)
+    write_csv(standings, RESULTS / "tournament.csv")
+    write_csv(h2h, RESULTS / "tournament_head_to_head.csv")
+    for r in standings:
+        print(f"   {r['strategy']:<20} win {r['win_rate']:6.1%} | avg final score {r['avg_final_score']:6.1f}")
+    plot_tournament(standings)
 
 
 if __name__ == "__main__":

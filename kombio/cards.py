@@ -22,6 +22,11 @@ ABILITIES = {
 CALLER_FAIL_PENALTY = 15
 OTHERS_PENALTY_WHEN_CALLER_WINS = 10
 
+#: Throwing a card that turns out not to match: the card stays where it was (now face up for a
+#: moment, so everyone learns it) and the thrower draws this many penalty cards face down.
+#: Assumption -- check the rulebook and adjust.
+WRONG_MATCH_PENALTY_CARDS = 1
+
 
 @dataclass(slots=True)
 class Card:
