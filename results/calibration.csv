@@ -1,0 +1,11 @@
+estimator,bin,predicted,actual,calls
+original (current totals only),0.5-0.6,0.5470901708678735,0.16257824395195397,5911
+original (current totals only),0.6-0.7,0.6449632069313394,0.22253872173758235,5617
+original (current totals only),0.7-0.8,0.740954398708636,0.30072639225181597,4130
+original (current totals only),0.8-0.9,0.840149885255307,0.4040447504302926,2324
+original (current totals only),0.9-1.0,0.9396256999705276,0.6206896551724138,1131
+calibrated (final turns + kept-low cards),0.5-0.6,0.5412439193884642,0.6025017373175816,1439
+calibrated (final turns + kept-low cards),0.6-0.7,0.6438945771710277,0.6905574516496018,879
+calibrated (final turns + kept-low cards),0.7-0.8,0.7450315457413249,0.777602523659306,634
+calibrated (final turns + kept-low cards),0.8-0.9,0.8451139088729017,0.8758992805755396,556
+calibrated (final turns + kept-low cards),0.9-1.0,0.9465590345727332,0.958904109589041,511
